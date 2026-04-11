@@ -1,0 +1,84 @@
+# ── Redirection HTTP → HTTPS ───────────────────────────────────────────────
+server {
+    listen 80;
+    server_name lasserre-consulting.fr www.lasserre-consulting.fr;
+    return 301 https://$host$request_uri;
+}
+
+# ── HTTPS ──────────────────────────────────────────────────────────────────
+server {
+    listen 443 ssl;
+    server_name lasserre-consulting.fr www.lasserre-consulting.fr;
+
+    ssl_certificate /etc/letsencrypt/live/lasserre-consulting.fr/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/lasserre-consulting.fr/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # ===== QUALIDOC =====
+    location = /qualidoc {
+        return 301 https://$host/qualidoc/;
+    }
+
+    location /qualidoc/ {
+        root /var/www;
+        try_files $uri $uri/ /qualidoc/index.html;
+    }
+
+    location /qualidoc/api/ {
+        proxy_pass http://localhost:8082/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /qualidoc/auth/ {
+        proxy_pass http://localhost:8180/qualidoc/auth/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+    }
+
+    # ===== CARNETROUTE =====
+    location = /carnetroute {
+        return 301 https://$host/carnetroute/;
+    }
+
+    location /carnetroute/ {
+        root /var/www;
+        try_files $uri $uri/ /carnetroute/index.html;
+    }
+
+    location /carnetroute/api/ {
+        proxy_pass http://localhost:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /ws/ {
+        proxy_pass http://localhost:8080/ws/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 86400s;
+    }
+
+    # ===== SITE VITRINE (PAR DÉFAUT) =====
+    # index.html non cacheable pour forcer la récupération de la version fraîche
+    location = / {
+        root /var/www/lasserre-consulting-site;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+        try_files /index.html =404;
+    }
+
+    location / {
+        root /var/www/lasserre-consulting-site;
+        try_files $uri $uri/ /index.html;
+    }
+}

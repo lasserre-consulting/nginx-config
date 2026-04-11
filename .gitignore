@@ -1,0 +1,7 @@
+# Fichiers générés
+*.dpkg-old
+*.dpkg-dist
+
+# Dossiers de modules (gérés par apt)
+modules-available/
+modules-enabled/
