@@ -46,7 +46,7 @@ server {
     # ── Webhook Stripe — POST only, pas de rate limit ─────────────────────
     location /api/webhooks/stripe {
         limit_except POST { deny all; }
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3002;
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -58,7 +58,7 @@ server {
     # ── Auth endpoints — rate limit strict ────────────────────────────────
     location /api/auth/ {
         limit_req zone=knido_auth burst=10 nodelay;
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3002;
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -68,7 +68,7 @@ server {
     # ── API tRPC — rate limit modéré ──────────────────────────────────────
     location /api/trpc/ {
         limit_req zone=knido_api burst=60 nodelay;
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3002;
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -77,7 +77,7 @@ server {
 
     # ── Téléchargement patrons — auth requise côté app ────────────────────
     location /api/download/ {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3002;
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -88,13 +88,13 @@ server {
 
     # ── Assets statiques Next.js — cache long durée ───────────────────────
     location ~* ^/_next/static/ {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3002;
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 
     # ── Reste de l'application ────────────────────────────────────────────
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3002;
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
