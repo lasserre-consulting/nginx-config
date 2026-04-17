@@ -2,6 +2,54 @@
 
 Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy HTTPS pour tous les projets hébergés, ainsi qu'un environnement nginx local Docker pour le développement.
 
+## Convention des ports — à respecter sur VPS et en local
+
+> **Important** : toujours respecter cette convention lors de l'ajout ou la modification d'un service, que ce soit sur le VPS ou en développement local.
+
+### Règles générales
+
+- Tout port Docker doit être bindé sur `127.0.0.1` (jamais `0.0.0.0`) — nginx est le seul point d'entrée public
+- Les bases de données n'exposent **pas** de port hôte sauf besoin explicite (accès client DB en dev)
+- Chaque nouveau projet réserve un bloc de ports selon les ranges ci-dessous
+
+### Ranges
+
+| Range | Usage |
+|---|---|
+| `3000–3099` | Apps Node / Next.js |
+| `4200–4299` | Frontends Angular (containers, accès local uniquement) |
+| `5432–5439` | PostgreSQL |
+| `8080–8089` | Backends Java (Spring Boot) |
+| `8090–8099` | Infrastructure (Jenkins, outils internes) |
+| `9092`, `2181` | Kafka / Zookeeper (carnetroute) |
+
+### Ports alloués
+
+| Port | Service | Projet | Binding |
+|---|---|---|---|
+| `22` | SSH | système | public |
+| `80` | nginx HTTP | système | public |
+| `443` | nginx HTTPS | système | public |
+| `3000` | knido-app | knido | `127.0.0.1` |
+| `3001` | entrevia-app | entrevia | `127.0.0.1` |
+| `4200` | lasserre-consulting-site (frontend) | lasserre-consulting-site | `127.0.0.1` |
+| `4201` | mt-frontend | mission-tracker | `127.0.0.1` |
+| `4202` | carnetroute-frontend | carnetroute | `127.0.0.1` |
+| `4203` | qualidoc-frontend | qualidoc | `127.0.0.1` |
+| `5432` | knido-postgres | knido | interne Docker |
+| `5433` | mt-postgres | mission-tracker | `127.0.0.1` |
+| `5434` | qualidoc-postgres | qualidoc | interne Docker |
+| `5435` | entrevia-postgres | entrevia | interne Docker |
+| `8080` | carnetroute-backend | carnetroute | `127.0.0.1` |
+| `8081` | mt-backend | mission-tracker | `127.0.0.1` |
+| `8082` | qualidoc-backend | qualidoc | `127.0.0.1` |
+| `8083` | carnetroute-kafka-ui | carnetroute | `127.0.0.1` |
+| `8090` | Jenkins | infrastructure | `127.0.0.1` |
+| `9092` | Kafka | carnetroute | `127.0.0.1` |
+| `2181` | Zookeeper | carnetroute | `127.0.0.1` |
+
+> Prochain projet Node/Next.js : `3002`. Prochain backend Java : `8084`. Prochaine DB Postgres : `5436`.
+
 ## Architecture de reverse proxy
 
 ```
@@ -45,6 +93,7 @@ Internet
 | `/carnetroute/` | Static | `/var/www/carnetroute/` | SPA Angular |
 | `/carnetroute/api/` | Proxy | `localhost:8080/api/` | Backend Docker |
 | `/ws/` | WebSocket | `localhost:8080/ws/` | WebSocket carnetroute |
+| `/entrevia/` | Proxy | `localhost:3001/entrevia/` | Next.js fullstack |
 
 ## Structure du repo
 
@@ -124,15 +173,11 @@ nginx écoute sur `http://localhost` (port 80) et proxifie vers les services dev
 
 | Projet | Frontend dev | Backend dev | URL locale |
 |---|---|---|---|
-| qualidoc | `4200` (ng serve) | `8083` (gradlew bootRun) | `http://localhost/qualidoc/` |
-| mission-tracker | `4201` (ng serve) | `8081` (gradlew run / docker) | `http://localhost/mission-tracker/` |
-| carnetroute | `4202` (ng serve) | `8080` (docker) | `http://localhost/carnetroute/` |
-
-> **Note** : `ng serve` doit être lancé avec `--host 0.0.0.0` pour être accessible depuis le container Docker.
-
-### Différences avec la prod
-
-En local, les frontends sont servis par le dev server (`ng serve`) et non par nginx statique. Les fichiers sont proxifiés en temps réel, ce qui active le hot reload.
+| qualidoc | `4203` (container) | `8082` (docker) | `http://localhost/qualidoc/` |
+| mission-tracker | `4201` (container) | `8081` (docker) | `http://localhost/mission-tracker/` |
+| carnetroute | `4202` (container) | `8080` (docker) | `http://localhost/carnetroute/` |
+| knido | — | `3000` (docker) | `http://localhost/` |
+| entrevia | — | `3001` (docker) | `http://localhost/entrevia/` |
 
 ## Pipeline Jenkins
 
@@ -144,9 +189,13 @@ Le `Jenkinsfile` exécute :
 
 Le pipeline échoue si `nginx -t` retourne une erreur, empêchant le déploiement d'une config invalide.
 
-## Ajouter un nouveau site
+## Ajouter un nouveau projet
 
-### 1. Ajouter les blocs dans `sites-available/lasserre-consulting`
+### 1. Choisir les ports selon la convention
+
+Consulter le tableau "Ports alloués" ci-dessus et prendre les prochains disponibles dans chaque range.
+
+### 2. Ajouter les blocs dans `sites-available/lasserre-consulting`
 
 ```nginx
 # ===== MON PROJET =====
@@ -168,35 +217,34 @@ location /mon-projet/api/ {
 }
 ```
 
-### 2. Ajouter le port dans `local/nginx.conf`
+### 3. Dans le `docker-compose.prod.yml` du projet
 
-```nginx
-location /mon-projet/api/ {
-    proxy_pass http://host.docker.internal:PORT/api/;
-    # ...headers...
-}
+Toujours binder sur `127.0.0.1` :
 
-location /mon-projet/ {
-    proxy_pass http://host.docker.internal:FRONTEND_PORT;
-    # ...headers...
-}
+```yaml
+ports:
+  - "127.0.0.1:PORT:PORT_INTERNE"
 ```
 
-### 3. Créer le répertoire web sur le VPS
+### 4. Créer le répertoire web sur le VPS
 
 ```bash
 sudo mkdir -p /var/www/mon-projet
 sudo chown www-data:www-data /var/www/mon-projet
 ```
 
-### 4. Tester et déployer
+### 5. Tester et déployer
 
 ```bash
-sudo nginx -t          # vérifier la syntaxe
-sudo systemctl reload nginx  # appliquer
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
 Ou pusher sur `main` et laisser Jenkins faire le déploiement automatiquement.
+
+### 6. Mettre à jour ce README
+
+Ajouter le nouveau service dans le tableau "Ports alloués" et mettre à jour la ligne "Prochain port disponible".
 
 ## Commandes utiles
 
@@ -237,3 +285,4 @@ sudo certbot renew
 | `403 Forbidden` | Permissions `/var/www/` | `sudo chown -R www-data:www-data /var/www/projet/` |
 | HMR WebSocket KO en local | nginx ne proxifie pas le WebSocket | Ajouter `proxy_http_version 1.1` + `Upgrade` headers |
 | Config invalide Jenkins | Erreur syntaxe nginx | Corriger l'erreur affichée par `nginx -t` |
+| Port déjà utilisé | Conflit de port | Consulter le tableau "Ports alloués" dans ce README |
