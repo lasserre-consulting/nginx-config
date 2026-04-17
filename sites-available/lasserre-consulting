@@ -91,6 +91,13 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Assets Next.js entrevia (pas de préfixe dans les scripts bootstrap)
+    location /_next/ {
+        proxy_pass http://127.0.0.1:3001;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        proxy_set_header Host $host;
+    }
+
     # ===== ENTREVIA =====
     location = /entrevia {
         return 301 https://$host/entrevia/;
@@ -124,7 +131,8 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    location ~* ^/entrevia/_next/static/ {
+    location ~* ^/entrevia/_next/ {
+        rewrite ^/entrevia(/_next/.*)$ $1 break;
         proxy_pass http://127.0.0.1:3001;
         add_header Cache-Control "public, max-age=31536000, immutable";
         proxy_set_header Host $host;
