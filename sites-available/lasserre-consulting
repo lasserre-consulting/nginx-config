@@ -1,3 +1,10 @@
+# Détection de la langue pour le site vitrine
+map $http_accept_language $lang_redirect {
+    default  "fr";
+    ~*^en    "en";
+    ~*^fr    "fr";
+}
+
 # ── Redirection HTTP → HTTPS ───────────────────────────────────────────────
 server {
     listen 80;
@@ -126,17 +133,31 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # ===== SITE VITRINE (PAR DÉFAUT) =====
-    # index.html non cacheable pour forcer la récupération de la version fraîche
+    # ===== SITE VITRINE =====
+    # Redirection racine selon la langue du navigateur
     location = / {
-        root /var/www/lasserre-consulting-site;
-        add_header Cache-Control "no-store, no-cache, must-revalidate";
-        try_files /index.html =404;
+        return 302 https://$host/$lang_redirect/;
     }
 
+    # Locale française
+    location /fr/ {
+        alias /var/www/lasserre-consulting-site/fr/;
+        index index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+        try_files $uri $uri/ /fr/index.html;
+    }
+
+    # Locale anglaise
+    location /en/ {
+        alias /var/www/lasserre-consulting-site/en/;
+        index index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate";
+        try_files $uri $uri/ /en/index.html;
+    }
+
+    # Assets racine générés par Angular (manifest, favicon, etc.)
     location / {
-        root /var/www/lasserre-consulting-site;
-        try_files $uri $uri/ /index.html;
+        root /var/www/lasserre-consulting-site/fr;
+        try_files $uri =404;
     }
 }
-
