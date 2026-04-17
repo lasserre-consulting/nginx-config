@@ -45,10 +45,13 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `8082` | qualidoc-backend | qualidoc | `127.0.0.1` |
 | `8083` | carnetroute-kafka-ui | carnetroute | `127.0.0.1` |
 | `8090` | Jenkins | infrastructure | `127.0.0.1` |
+| `8091` | Prometheus | carnetroute | `127.0.0.1` |
+| `8092` | Grafana | carnetroute | `127.0.0.1` |
+| `8093` | Loki | carnetroute | `127.0.0.1` |
 | `9092` | Kafka | carnetroute | `127.0.0.1` |
 | `2181` | Zookeeper | carnetroute | `127.0.0.1` |
 
-> Prochain projet Node/Next.js : `3002`. Prochain backend Java : `8084`. Prochaine DB Postgres : `5436`.
+> Prochain projet Node/Next.js : `3002`. Prochain backend Java : `8084`. Prochaine DB Postgres : `5436`. Prochaine infra : `8094`.
 
 ## Architecture de reverse proxy
 
