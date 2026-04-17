@@ -2,10 +2,7 @@ services:
   nginx:
     image: nginx:alpine
     container_name: local-nginx
-    ports:
-      - "80:80"
+    network_mode: host
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     restart: unless-stopped
