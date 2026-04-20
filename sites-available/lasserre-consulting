@@ -138,6 +138,13 @@ server {
         proxy_set_header Host $host;
     }
 
+    # Fichiers publics Next.js sans basePath (manifest, favicon, icônes PWA)
+    location ~* ^/entrevia/(manifest\.json|favicon\.ico|icon-[^/]+\.png|apple-[^/]+\.png|robots\.txt|sitemap\.xml)$ {
+        rewrite ^/entrevia/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+    }
+
     location /entrevia/ {
         proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
