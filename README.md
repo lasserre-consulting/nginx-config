@@ -31,7 +31,7 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `80` | nginx HTTP | système | public |
 | `443` | nginx HTTPS | système | public |
 | `3000` | knido-app | knido | `127.0.0.1` |
-| `3001` | entrevia-app | entrevia | `127.0.0.1` |
+| `3001` | entrevia-app | entrevia (`entrevia.dev`) | `127.0.0.1` |
 | `4200` | lasserre-consulting-site (frontend) | lasserre-consulting-site | `127.0.0.1` |
 | `4201` | mt-frontend | mission-tracker | `127.0.0.1` |
 | `4202` | carnetroute-frontend | carnetroute | `127.0.0.1` |
@@ -51,7 +51,7 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `9092` | Kafka | carnetroute | `127.0.0.1` |
 | `2181` | Zookeeper | carnetroute | `127.0.0.1` |
 
-> Prochain projet Node/Next.js : `3002`. Prochain backend Java : `8084`. Prochaine DB Postgres : `5436`. Prochaine infra : `8094`.
+> Prochain projet Node/Next.js : `3003`. Prochain backend Java : `8084`. Prochaine DB Postgres : `5436`. Prochaine infra : `8094`.
 
 ## Architecture de reverse proxy
 
@@ -82,6 +82,14 @@ Internet
    ▼
 / (racine)
 └─ static /var/www/lasserre-consulting-site/
+
+┌─────────────────────────────────────────┐
+│  nginx (port 443 SSL / port 80 redirect) │
+│  entrevia.dev                            │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+            / ──► :3001 (Next.js PM2)
 ```
 
 ### Routes de production
@@ -96,14 +104,21 @@ Internet
 | `/carnetroute/` | Static | `/var/www/carnetroute/` | SPA Angular |
 | `/carnetroute/api/` | Proxy | `localhost:8080/api/` | Backend Docker |
 | `/ws/` | WebSocket | `localhost:8080/ws/` | WebSocket carnetroute |
-| `/entrevia/` | Proxy | `localhost:3001/entrevia/` | Next.js fullstack |
+
+**entrevia.dev**
+
+| Path | Type | Destination | Notes |
+|---|---|---|---|
+| `/` | Proxy | `localhost:3001` | Next.js fullstack (PM2) |
 
 ## Structure du repo
 
 ```
 nginx-config/
 ├── sites-available/
-│   ├── lasserre-consulting     # Config principale HTTPS + tous les projets
+│   ├── lasserre-consulting     # Config principale HTTPS + projets sous-domaine
+│   ├── entrevia                # entrevia.dev — Next.js fullstack (port 3001)
+│   ├── knido                   # knido.fr — Next.js fullstack (port 3002)
 │   ├── default                 # Config par défaut nginx
 │   └── jenkins                 # Reverse proxy Jenkins
 ├── local/
@@ -131,7 +146,12 @@ include /etc/letsencrypt/options-ssl-nginx.conf;
 ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 ```
 
-Renouvellement automatique via certbot. Redirection HTTP → HTTPS systématique.
+Domaines avec certificat Let's Encrypt :
+- `lasserre-consulting.fr` (existant)
+- `knido.fr` (existant)
+- `entrevia.dev` (a provisionner : `sudo certbot --nginx -d entrevia.dev -d www.entrevia.dev`)
+
+Renouvellement automatique via certbot. Redirection HTTP → HTTPS systematique.
 
 ### Security headers
 
@@ -180,7 +200,7 @@ nginx écoute sur `http://localhost` (port 80) et proxifie vers les services dev
 | mission-tracker | `4201` (container) | `8081` (docker) | `http://localhost/mission-tracker/` |
 | carnetroute | `4202` (container) | `8080` (docker) | `http://localhost/carnetroute/` |
 | knido | — | `3000` (docker) | `http://localhost/` |
-| entrevia | — | `3001` (docker) | `http://localhost/entrevia/` |
+| entrevia | — | `3001` (docker) | `http://localhost:3001` (direct, pas de proxy nginx en dev) |
 
 ## Pipeline Jenkins
 

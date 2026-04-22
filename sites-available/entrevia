@@ -1,0 +1,109 @@
+# ── Redirection HTTP → HTTPS ───────────────────────────────────────────────
+server {
+    listen 80;
+    listen [::]:80;
+    server_name entrevia.dev www.entrevia.dev;
+    return 301 https://$host$request_uri;
+}
+
+# ── HTTPS ──────────────────────────────────────────────────────────────────
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name entrevia.dev www.entrevia.dev;
+
+    # ── TLS (Certbot remplacera ces chemins) ──────────────────────────────
+    ssl_certificate     /etc/letsencrypt/live/entrevia.dev/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/entrevia.dev/privkey.pem;
+    include             /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+
+    # ── Headers de sécurité ───────────────────────────────────────────────
+    add_header X-Content-Type-Options    "nosniff"                           always;
+    add_header X-Frame-Options           "SAMEORIGIN"                        always;
+    add_header X-XSS-Protection          "1; mode=block"                     always;
+    add_header Referrer-Policy           "strict-origin-when-cross-origin"   always;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header Permissions-Policy        "camera=(), microphone=(), geolocation=()" always;
+    # CSP : geree dynamiquement par l'app (nonces dans proxy.ts)
+
+    # ── Gzip ─────────────────────────────────────────────────────────────
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript
+               text/xml application/xml application/xml+rss text/javascript;
+
+    # ── Webhook Stripe — POST only, pas de rate limit ─────────────────────
+    location /api/stripe/webhook {
+        limit_except POST { deny all; }
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 128k;
+    }
+
+    # ── Auth endpoints — rate limit strict ────────────────────────────────
+    location /api/auth/ {
+        limit_req zone=entrevia_auth burst=10 nodelay;
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ── API tRPC — rate limit modere ──────────────────────────────────────
+    location /api/trpc/ {
+        limit_req zone=entrevia_api burst=60 nodelay;
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ── Upload LLM job posting — max 5MB ──────────────────────────────────
+    location /api/upload {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 5m;
+    }
+
+    # ── Assets statiques Next.js — cache long duree ───────────────────────
+    location ~* ^/_next/static/ {
+        proxy_pass http://127.0.0.1:3001;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # ── Service Worker — pas de cache ─────────────────────────────────────
+    location /sw.js {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # ── Reste de l'application ────────────────────────────────────────────
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # ── Bloquer l'acces aux fichiers sensibles ────────────────────────────
+    location ~ /\.(env|git|htaccess) {
+        deny all;
+        return 404;
+    }
+}
