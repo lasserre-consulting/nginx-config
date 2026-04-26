@@ -1,0 +1,77 @@
+# ── Normance API — api.lasserre-consulting.fr → port 3001 ──────────────────
+# Avant d'activer : certbot certonly --nginx -d api.lasserre-consulting.fr
+
+# Redirection HTTP → HTTPS
+server {
+    listen 80;
+    server_name api.lasserre-consulting.fr;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS
+server {
+    listen 443 ssl;
+    server_name api.lasserre-consulting.fr;
+
+    ssl_certificate /etc/letsencrypt/live/api.lasserre-consulting.fr/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.lasserre-consulting.fr/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Logs dédiés
+    access_log /var/log/nginx/normance.access.log;
+    error_log  /var/log/nginx/normance.error.log;
+
+    # Taille max du body (batch de 100 certificats)
+    client_max_body_size 1m;
+
+    # Sécurité headers (complète @fastify/helmet côté app)
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy "no-referrer" always;
+
+    # Rate limiting nginx (filet de sécurité au-dessus du rate-limit Redis de l'app)
+    limit_req zone=normance_api burst=30 nodelay;
+
+    # Stripe webhook — pas de rate limit (signature Stripe valide = trusted)
+    location = /v1/stripe/webhook {
+        limit_req off;
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Stripe nécessite le body brut non bufferisé
+        proxy_request_buffering off;
+    }
+
+    # Génération PDF (peut prendre jusqu'à ~10s avec Puppeteer)
+    location ~ ^/v1/certificate/.+/pdf$ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+
+    # Rapport CSRD PDF (peut être volumineux)
+    location ~ ^/v1/report/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+        proxy_buffering off;
+    }
+
+    # Tous les autres endpoints
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 15s;
+    }
+}
