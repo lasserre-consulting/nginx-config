@@ -26,9 +26,6 @@ server {
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
     add_header Permissions-Policy        "camera=(), microphone=(), geolocation=()" always;
 
-    # ── Bloquer le scraper OVH identifié ─────────────────────────────────
-    deny 2001:41d0:801:2000::45e7;
-
     # ── Gzip ─────────────────────────────────────────────────────────────
     gzip on;
     gzip_types text/plain text/css application/json application/javascript
@@ -57,17 +54,7 @@ server {
 
     # ── API tRPC — rate limit modéré ──────────────────────────────────────
     location /api/trpc/ {
-        limit_req zone=entrevia_api burst=60 nodelay;
-        proxy_pass http://127.0.0.1:3001;
-        proxy_set_header Host              $host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # ── Quick session — rate limit anti-scraping ──────────────────────────
-    location /quick/ {
-        limit_req zone=entrevia_quick burst=5 nodelay;
+        limit_req zone=entrevia_api burst=80 nodelay;
         proxy_pass http://127.0.0.1:3001;
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
@@ -79,6 +66,28 @@ server {
     location ~* ^/_next/static/ {
         proxy_pass http://127.0.0.1:3001;
         add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # ── Pages publiques — cache proxy 60s ─────────────────────────────────
+    location ~ ^/(en/)?(pricing|legal|$) {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_cache entrevia_cache;
+        proxy_ignore_headers Cache-Control Set-Cookie;
+        proxy_hide_header Set-Cookie;
+        proxy_cache_valid 200 60s;
+        proxy_cache_valid 301 302 10s;
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+        proxy_cache_lock on;
+        proxy_cache_key "$scheme$request_method$host$request_uri";
+        add_header X-Cache-Status $upstream_cache_status;
+
+        proxy_cache_bypass $entrevia_has_session;
+        proxy_no_cache $entrevia_has_session;
     }
 
     # ── Reste de l'application ────────────────────────────────────────────
