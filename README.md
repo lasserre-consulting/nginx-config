@@ -32,10 +32,13 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `443` | nginx HTTPS | système | public |
 | `3000` | knido-app | knido | `127.0.0.1` |
 | `3001` | entrevia-app | entrevia (`entrevia.dev`) | `127.0.0.1` |
+| `3002` | knido-app | knido (`knido.fr`) | `127.0.0.1` |
+| `3003` | normance-api | normance | `127.0.0.1` |
+| `3004` | atelier-api | atelier-du-fil | `127.0.0.1` |
 | `4200` | lasserre-consulting-site (frontend) | lasserre-consulting-site | `127.0.0.1` |
 | `4201` | mt-frontend | mission-tracker | `127.0.0.1` |
 | `4202` | carnetroute-frontend | carnetroute | `127.0.0.1` |
-| `4203` | qualidoc-frontend | qualidoc | `127.0.0.1` |
+| `4203` | atelier-frontend | atelier-du-fil | `127.0.0.1` |
 | `5432` | knido-postgres | knido | interne Docker |
 | `5433` | mt-postgres | mission-tracker | `127.0.0.1` |
 | `5434` | qualidoc-postgres | qualidoc | interne Docker |
@@ -51,7 +54,7 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `9092` | Kafka | carnetroute | `127.0.0.1` |
 | `2181` | Zookeeper | carnetroute | `127.0.0.1` |
 
-> Prochain projet Node/Next.js : `3003`. Prochain backend Java : `8084`. Prochaine DB Postgres : `5436`. Prochaine infra : `8094`.
+> Prochain projet Node/Next.js : `3005`. Prochain backend Java : `8084`. Prochaine DB Postgres : `5436`. Prochaine infra : `8094`.
 
 ## Architecture de reverse proxy
 

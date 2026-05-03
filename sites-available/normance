@@ -26,8 +26,10 @@ server {
     client_max_body_size 1m;
 
     # Sécurité headers (complète @fastify/helmet côté app)
-    add_header X-Content-Type-Options nosniff always;
-    add_header Referrer-Policy "no-referrer" always;
+    add_header X-Frame-Options           "SAMEORIGIN"                        always;
+    add_header X-Content-Type-Options    "nosniff"                           always;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header Referrer-Policy           "no-referrer"                       always;
 
     # Rate limiting nginx (filet de sécurité au-dessus du rate-limit Redis de l'app)
     limit_req zone=normance_api burst=30 nodelay;
