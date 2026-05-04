@@ -62,6 +62,13 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # ===== SITE VITRINE — image profil (priorité sur le bloc /images/ d'Atelier du Fil) =====
+    location = /images/profil.png {
+        root /var/www/lasserre-consulting-site/fr;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
     # ===== ATELIER DU FIL — assets racine (temporaire sous-chemin) =====
     location /images/ {
         proxy_pass http://127.0.0.1:4203/images/;
