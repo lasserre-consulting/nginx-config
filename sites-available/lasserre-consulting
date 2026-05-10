@@ -27,10 +27,6 @@ server {
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
     add_header Referrer-Policy           "no-referrer-when-downgrade"        always;
 
-    # Redirection ancienne URL → knido.fr
-    location /atelier-du-fil {
-        return 301 https://knido.fr/;
-    }
 
     # ===== SITE VITRINE =====
     location = /images/profil.png {
