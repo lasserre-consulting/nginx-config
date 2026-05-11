@@ -43,10 +43,12 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `5433` | mt-postgres | mission-tracker | `127.0.0.1` |
 | `5434` | qualidoc-postgres | qualidoc | interne Docker |
 | `5435` | entrevia-postgres | entrevia | interne Docker |
+| `5436` | facturalys-postgres | facturalys | `127.0.0.1` |
 | `8080` | carnetroute-backend | carnetroute | `127.0.0.1` |
 | `8081` | mt-backend | mission-tracker | `127.0.0.1` |
 | `8082` | qualidoc-backend | qualidoc | `127.0.0.1` |
 | `8083` | carnetroute-kafka-ui | carnetroute | `127.0.0.1` |
+| `8084` | facturalys-backend | facturalys (`lasserre-consulting.fr/facturalys`) | `127.0.0.1` |
 | `8090` | Jenkins | infrastructure | `127.0.0.1` |
 | `8091` | Prometheus | carnetroute | `127.0.0.1` |
 | `8092` | Grafana | carnetroute | `127.0.0.1` |
@@ -54,7 +56,7 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `9092` | Kafka | carnetroute | `127.0.0.1` |
 | `2181` | Zookeeper | carnetroute | `127.0.0.1` |
 
-> Prochain projet Node/Next.js : `3005`. Prochain backend Java : `8084`. Prochaine DB Postgres : `5436`. Prochaine infra : `8094`.
+> Prochain projet Node/Next.js : `3005`. Prochain backend Java : `8085`. Prochaine DB Postgres : `5437`. Prochaine infra : `8094`.
 
 ## Architecture de reverse proxy
 
@@ -107,6 +109,7 @@ Internet
 | `/carnetroute/` | Static | `/var/www/carnetroute/` | SPA Angular |
 | `/carnetroute/api/` | Proxy | `localhost:8080/api/` | Backend Docker |
 | `/ws/` | WebSocket | `localhost:8080/ws/` | WebSocket carnetroute |
+| `/facturalys/` | Proxy | `localhost:8084/` (prefix strippé) | Backend Symfony 7.4 — API REST + Swagger. Prefix `/facturalys` envoyé via `X-Forwarded-Prefix` pour reconstruire les URLs absolues OpenAPI |
 
 **entrevia.dev**
 
@@ -204,6 +207,7 @@ nginx écoute sur `http://localhost` (port 80) et proxifie vers les services dev
 | carnetroute | `4202` (container) | `8080` (docker) | `http://localhost/carnetroute/` |
 | knido | — | `3000` (docker) | `http://localhost/` |
 | entrevia | — | `3001` (docker) | `http://localhost:3001` (direct, pas de proxy nginx en dev) |
+| facturalys | — | `8084` (docker, nginx interne) | `http://localhost:8090/facturalys/` (via nginx local) ou direct `http://localhost:8084/facturalys/api/docs` |
 
 ## Pipeline Jenkins
 
