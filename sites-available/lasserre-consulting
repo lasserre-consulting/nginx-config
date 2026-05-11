@@ -67,6 +67,10 @@ server {
     }
 
     # ===== FACTURALYS =====
+    location = /facturalys/ {
+        return 301 https://$host/facturalys/api/docs;
+    }
+
     location = /facturalys {
         return 301 https://$host/facturalys/;
     }
