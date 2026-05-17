@@ -37,6 +37,43 @@ server {
 
 
 
+    # ===== RETAIL PRICING ETL =====
+    location = /retail-pricing-etl {
+        return 301 https://$host/retail-pricing-etl/swagger-ui/index.html;
+    }
+
+    location /retail-pricing-etl/api/ {
+        proxy_pass http://127.0.0.1:8085/api/;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /retail-pricing-etl/actuator/ {
+        proxy_pass http://127.0.0.1:8085/actuator/;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /retail-pricing-etl/swagger-ui/ {
+        proxy_pass http://127.0.0.1:8085/swagger-ui/;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /retail-pricing-etl/api-docs {
+        proxy_pass http://127.0.0.1:8085/api-docs;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # ===== CARNETROUTE =====
     location = /carnetroute {
         return 301 https://$host/carnetroute/;
