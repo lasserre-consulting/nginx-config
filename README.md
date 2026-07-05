@@ -35,7 +35,8 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `3002` | knido-app | knido (`knido.fr`) | `127.0.0.1` |
 | `3003` | normance-api | normance | `127.0.0.1` |
 | `3004` | atelier-api | atelier-du-fil | `127.0.0.1` |
-| `3005` | hub-web (Next.js) | hub (`hub.lasserre-consulting.fr`) | `127.0.0.1` |
+| `3005` | legacode-front (Next.js) | legacode (`lasserre-consulting.fr/legacode`) | `127.0.0.1` |
+| `3006` | hub-web (Next.js) | hub (`hub.lasserre-consulting.fr`) | `127.0.0.1` |
 | `4200` | lasserre-consulting-site (frontend) | lasserre-consulting-site | `127.0.0.1` |
 | `4201` | mt-frontend | mission-tracker | `127.0.0.1` |
 | `4202` | carnetroute-frontend | carnetroute | `127.0.0.1` |
@@ -59,7 +60,7 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `9092` | Kafka | carnetroute | `127.0.0.1` |
 | `2181` | Zookeeper | carnetroute | `127.0.0.1` |
 
-> Prochain projet Node/Next.js : `3006`. Prochain backend Java : `8086`. Prochaine DB Postgres : `5438`. Prochaine infra : `8094`.
+> Prochain projet Node/Next.js : `3007`. Prochain backend Java : `8086`. Prochaine DB Postgres : `5438`. Prochaine infra : `8094`.
 
 ## Architecture de reverse proxy
 
@@ -125,8 +126,8 @@ Internet
 | Path | Type | Destination | Notes |
 |---|---|---|---|
 | `/api/` | Proxy | `localhost:8085/api/` | API Spring Boot (Docker) — Basic auth applicative, rate limit `hub_api` en filet |
-| `/_next/static/` | Proxy | `localhost:3005` | Assets Next.js, cache immutable 1 an |
-| `/` | Proxy | `localhost:3005` | Next.js standalone (Docker) |
+| `/_next/static/` | Proxy | `localhost:3006` | Assets Next.js, cache immutable 1 an |
+| `/` | Proxy | `localhost:3006` | Next.js standalone (Docker) |
 
 ## Structure du repo
 
@@ -135,7 +136,7 @@ nginx-config/
 ├── sites-available/
 │   ├── lasserre-consulting     # Config principale HTTPS + projets sous-domaine
 │   ├── entrevia                # entrevia.dev — Next.js fullstack (port 3001)
-│   ├── hub                     # hub.lasserre-consulting.fr — hub perso Next.js (3005) + API Spring (8085)
+│   ├── hub                     # hub.lasserre-consulting.fr — hub perso Next.js (3006) + API Spring (8085)
 │   ├── knido                   # knido.fr — Next.js fullstack (port 3002)
 │   ├── default                 # Config par défaut nginx
 │   └── jenkins                 # Reverse proxy Jenkins
