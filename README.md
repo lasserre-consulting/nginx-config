@@ -35,6 +35,7 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `3002` | knido-app | knido (`knido.fr`) | `127.0.0.1` |
 | `3003` | normance-api | normance | `127.0.0.1` |
 | `3004` | atelier-api | atelier-du-fil | `127.0.0.1` |
+| `3005` | hub-web (Next.js) | hub (`hub.lasserre-consulting.fr`) | `127.0.0.1` |
 | `4200` | lasserre-consulting-site (frontend) | lasserre-consulting-site | `127.0.0.1` |
 | `4201` | mt-frontend | mission-tracker | `127.0.0.1` |
 | `4202` | carnetroute-frontend | carnetroute | `127.0.0.1` |
@@ -44,11 +45,13 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `5434` | qualidoc-postgres | qualidoc | interne Docker |
 | `5435` | entrevia-postgres | entrevia | interne Docker |
 | `5436` | facturalys-postgres | facturalys | `127.0.0.1` |
+| `5437` | hub-postgres | hub | interne Docker |
 | `8080` | carnetroute-backend | carnetroute | `127.0.0.1` |
 | `8081` | mt-backend | mission-tracker | `127.0.0.1` |
 | `8082` | qualidoc-backend | qualidoc | `127.0.0.1` |
 | `8083` | carnetroute-kafka-ui | carnetroute | `127.0.0.1` |
 | `8084` | facturalys-backend | facturalys (`lasserre-consulting.fr/facturalys`) | `127.0.0.1` |
+| `8085` | hub-api (Spring Boot) | hub (`hub.lasserre-consulting.fr`) | `127.0.0.1` |
 | `8090` | Jenkins | infrastructure | `127.0.0.1` |
 | `8091` | Prometheus | carnetroute | `127.0.0.1` |
 | `8092` | Grafana | carnetroute | `127.0.0.1` |
@@ -56,7 +59,7 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `9092` | Kafka | carnetroute | `127.0.0.1` |
 | `2181` | Zookeeper | carnetroute | `127.0.0.1` |
 
-> Prochain projet Node/Next.js : `3005`. Prochain backend Java : `8085`. Prochaine DB Postgres : `5437`. Prochaine infra : `8094`.
+> Prochain projet Node/Next.js : `3006`. Prochain backend Java : `8086`. Prochaine DB Postgres : `5438`. Prochaine infra : `8094`.
 
 ## Architecture de reverse proxy
 
@@ -117,6 +120,14 @@ Internet
 |---|---|---|---|
 | `/` | Proxy | `localhost:3001` | Next.js fullstack (PM2) |
 
+**hub.lasserre-consulting.fr**
+
+| Path | Type | Destination | Notes |
+|---|---|---|---|
+| `/api/` | Proxy | `localhost:8085/api/` | API Spring Boot (Docker) — Basic auth applicative, rate limit `hub_api` en filet |
+| `/_next/static/` | Proxy | `localhost:3005` | Assets Next.js, cache immutable 1 an |
+| `/` | Proxy | `localhost:3005` | Next.js standalone (Docker) |
+
 ## Structure du repo
 
 ```
@@ -124,6 +135,7 @@ nginx-config/
 ├── sites-available/
 │   ├── lasserre-consulting     # Config principale HTTPS + projets sous-domaine
 │   ├── entrevia                # entrevia.dev — Next.js fullstack (port 3001)
+│   ├── hub                     # hub.lasserre-consulting.fr — hub perso Next.js (3005) + API Spring (8085)
 │   ├── knido                   # knido.fr — Next.js fullstack (port 3002)
 │   ├── default                 # Config par défaut nginx
 │   └── jenkins                 # Reverse proxy Jenkins
@@ -156,6 +168,7 @@ Domaines avec certificat Let's Encrypt :
 - `lasserre-consulting.fr` (existant)
 - `knido.fr` (existant)
 - `entrevia.dev` (a provisionner : `sudo certbot --nginx -d entrevia.dev -d www.entrevia.dev`)
+- `hub.lasserre-consulting.fr` (a provisionner : `sudo certbot --nginx -d hub.lasserre-consulting.fr` — penser à l'enregistrement DNS A/AAAA du sous-domaine vers le VPS)
 
 Renouvellement automatique via certbot. Redirection HTTP → HTTPS systematique.
 
