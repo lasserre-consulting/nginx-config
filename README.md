@@ -37,6 +37,7 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `3004` | atelier-api | atelier-du-fil | `127.0.0.1` |
 | `3005` | legacode-front (Next.js) | legacode (`lasserre-consulting.fr/legacode`) | `127.0.0.1` |
 | `3006` | hub-web (Next.js) | hub (`hub.lasserre-consulting.fr`) | `127.0.0.1` |
+| `3007` | fil-sortileges-app (Next.js) | fil-et-sortileges (`lasserre-consulting.fr/fil-et-sortileges`) | `127.0.0.1` |
 | `4200` | lasserre-consulting-site (frontend) | lasserre-consulting-site | `127.0.0.1` |
 | `4201` | mt-frontend | mission-tracker | `127.0.0.1` |
 | `4202` | carnetroute-frontend | carnetroute | `127.0.0.1` |
@@ -60,7 +61,7 @@ Configuration nginx pour le VPS `lasserre-consulting.fr`. Gère le reverse proxy
 | `9092` | Kafka | carnetroute | `127.0.0.1` |
 | `2181` | Zookeeper | carnetroute | `127.0.0.1` |
 
-> Prochain projet Node/Next.js : `3007`. Prochain backend Java : `8086`. Prochaine DB Postgres : `5438`. Prochaine infra : `8094`.
+> Prochain projet Node/Next.js : `3008`. Prochain backend Java : `8086`. Prochaine DB Postgres : `5438`. Prochaine infra : `8094`.
 
 ## Architecture de reverse proxy
 
@@ -114,6 +115,7 @@ Internet
 | `/carnetroute/api/` | Proxy | `localhost:8080/api/` | Backend Docker |
 | `/ws/` | WebSocket | `localhost:8080/ws/` | WebSocket carnetroute |
 | `/facturalys/` | Proxy | `localhost:8084/` (prefix strippé) | Backend Symfony 7.4 — API REST + Swagger. Prefix `/facturalys` envoyé via `X-Forwarded-Prefix` pour reconstruire les URLs absolues OpenAPI |
+| `/fil-et-sortileges` + `/fil-et-sortileges/` | Proxy | `127.0.0.1:3007` | Next.js 16 standalone (Docker), `basePath` `/fil-et-sortileges`. Mur de mot de passe unique applicatif. Pas de redirect bare↔slash côté nginx (Next `trailingSlash:false`) pour éviter une boucle |
 
 **entrevia.dev**
 

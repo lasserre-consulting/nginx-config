@@ -169,6 +169,29 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # ===== FIL & SORTILEGES =====
+    # Next.js 16 standalone (Docker, port 3007), basePath /fil-et-sortileges.
+    # Pas de redirect bare->slash ici : Next fait trailingSlash:false (308 slash->bare),
+    # un redirect nginx inverse creerait une boucle. On proxifie les deux variantes.
+    location = /fil-et-sortileges {
+        proxy_pass http://127.0.0.1:3007;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /fil-et-sortileges/ {
+        proxy_pass http://127.0.0.1:3007;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 20M;
+    }
+
     # ===== SITE VITRINE =====
     # Redirection racine selon la langue du navigateur
     location = / {
