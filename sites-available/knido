@@ -12,6 +12,10 @@ server {
     listen [::]:443 ssl http2;
     server_name knido.fr www.knido.fr;
 
+    # Log dédié (+ log commun conservé pour les analyses globales / fail2ban botsearch)
+    access_log /var/log/nginx/knido.access.log;
+    access_log /var/log/nginx/access.log;
+
     # ── TLS ───────────────────────────────────────────────────────────────
     ssl_certificate     /etc/letsencrypt/live/knido.fr/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/knido.fr/privkey.pem;

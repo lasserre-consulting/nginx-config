@@ -8,6 +8,10 @@ server {
     listen 443 ssl;
     server_name jenkins.lasserre-consulting.fr;
 
+    # Log dédié (+ log commun conservé pour les analyses globales / fail2ban botsearch)
+    access_log /var/log/nginx/jenkins.access.log;
+    access_log /var/log/nginx/access.log;
+
     ssl_certificate /etc/letsencrypt/live/jenkins.lasserre-consulting.fr/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/jenkins.lasserre-consulting.fr/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
