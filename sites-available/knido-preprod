@@ -1,0 +1,97 @@
+# KNIDO PRÉPROD — branche `preprod`, conteneurs /home/ubuntu/projects/knido-preprod
+# (API 127.0.0.1:3008, front 127.0.0.1:4204). Protégé par basic auth + noindex.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name preprod.knido.fr;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name preprod.knido.fr;
+
+    access_log /var/log/nginx/knido-preprod.access.log;
+    access_log /var/log/nginx/access.log;
+
+    ssl_certificate     /etc/letsencrypt/live/preprod.knido.fr/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/preprod.knido.fr/privkey.pem;
+    include             /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 25M;
+
+    # Accès réservé (fail2ban nginx-http-auth surveille les échecs)
+    auth_basic           "KNIDO preprod";
+    auth_basic_user_file /etc/nginx/.htpasswd-knido-preprod;
+
+    add_header X-Robots-Tag              "noindex, nofollow"                 always;
+    add_header X-Content-Type-Options    "nosniff"                           always;
+    add_header X-Frame-Options           "SAMEORIGIN"                        always;
+    add_header Referrer-Policy           "strict-origin-when-cross-origin"   always;
+    add_header Strict-Transport-Security "max-age=63072000"                  always;
+    add_header Permissions-Policy        "camera=(), microphone=(), geolocation=()" always;
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.stripe.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'" always;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript
+               text/xml application/xml application/xml+rss text/javascript;
+
+    location = /robots.txt {
+        auth_basic off;
+        default_type text/plain;
+        return 200 "User-agent: *\nDisallow: /\n";
+    }
+
+    # Webhooks Stripe/Bunny : hors basic auth (la signature est vérifiée par l'API)
+    location /api/webhooks/ {
+        auth_basic off;
+        limit_except POST { deny all; }
+        proxy_pass         http://127.0.0.1:3008/webhooks/;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 128k;
+    }
+
+    location /api/auth/ {
+        limit_req zone=knido_auth burst=10 nodelay;
+        proxy_pass         http://127.0.0.1:3008/auth/;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/ {
+        limit_req zone=knido_api burst=60 nodelay;
+        proxy_pass         http://127.0.0.1:3008/;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    location / {
+        proxy_pass         http://127.0.0.1:4204;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+    }
+
+    location ~ /\.(env|git|htaccess) {
+        deny all;
+        return 404;
+    }
+}
